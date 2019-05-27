@@ -41,13 +41,19 @@ var screen [screenHeight][screenWidth]byte
 var memory = make([]byte, memorySize)
 
 func main() {
-	initSprites()
+	if len(os.Args) < 2 {
+		fmt.Printf("usage \"go run main.go ROM_NAME\"\n")
+		return
+	}
 
-	err := ReadROM("c8prog/hex_to_decimal")
+	err := ReadROM(os.Args[1])
 	if err != nil {
 		return
 	}
-	err = processROM()
+
+	initSprites()
+
+	err = runROM()
 	if err != nil {
 		return
 	}
@@ -71,7 +77,7 @@ func ReadROM(filename string) error {
 	return err
 }
 
-func processROM() error {
+func runROM() error {
 	for regs.progCounter <= memorySize {
 		fmt.Printf("At instruction 0x%X: ", regs.progCounter)
 		b1 := uint16(memory[regs.progCounter])
@@ -85,7 +91,7 @@ func processROM() error {
 		case val == 0x00E0:
 			// 00E0	Display	disp_clear()	Clears the screen.
 			screen = [screenHeight][screenWidth]byte{}
-			fmt.Printf("0x%X Clear screen\n", val)
+			fmt.Printf("0x%X Clear the screen\n", val)
 
 		case val == 0x00EE:
 			// 00EE	Flow	return;	Returns from a subroutine.
@@ -422,14 +428,14 @@ func drawScreen() {
 	for row := 0; row < screenHeight; row++ {
 		fmt.Printf("|")
 		for col := 0; col < screenWidth; col++ {
-			fmt.Printf("%s", getByte(screen[row][col]))
+			fmt.Printf("%s", getByteForScreen(screen[row][col]))
 		}
 		fmt.Printf("|\n")
 	}
 	fmt.Printf("+----------------------------------------------------------------+\n")
 }
 
-func getByte(val byte) string {
+func getByteForScreen(val byte) string {
 	str := map[byte]string{
 		0: "    ", 1: "   *", 2: "  * ", 3: "  **", 4: " *  ", 5: " * *", 6: " ** ", 7: " ***",
 		8: "*   ", 9: "*  *", 10: "* * ", 11: "* **", 12: "**  ", 13: "** *", 14: "*** ", 15: "****",
