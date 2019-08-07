@@ -6,6 +6,9 @@ import (
 	"math/rand"
 	"os"
 	"time"
+	"github.com/hajimehoshi/ebiten"
+	"log"
+	"github.com/erdincmutlu/CHIP-8/c8"
 )
 
 const memorySize = 0x1000
@@ -49,14 +52,17 @@ func main() {
 		return
 	}
 
-	fmt.Printf("\u2587\u2589  \u2587\n")
-
 	err := ReadROM(os.Args[1])
 	if err != nil {
 		return
 	}
 
 	initSprites()
+
+	err = ebiten.Run(c8.Update, c8.BoardWidth, c8.BoardHeight, 2, "Hello World!!!")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = runROM()
 	if err != nil {
