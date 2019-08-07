@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"time"
 )
 
 const memorySize = 0x1000
@@ -13,6 +14,8 @@ const screenMemoryStart = 0x100
 
 const screenWidth = 64 / 8
 const screenHeight = 32
+
+const clearScreen = "\033[H\033[2J"
 
 type registerStruct struct {
 	V           []byte
@@ -45,6 +48,8 @@ func main() {
 		fmt.Printf("usage \"go run main.go ROM_NAME\"\n")
 		return
 	}
+
+	fmt.Printf("\u2587\u2589  \u2587\n")
 
 	err := ReadROM(os.Args[1])
 	if err != nil {
@@ -424,6 +429,8 @@ func setSoundTimer(variableIndex byte) {
 }
 
 func drawScreen() {
+	time.Sleep(time.Second * 2)
+	fmt.Printf(clearScreen)
 	fmt.Printf("+----------------------------------------------------------------+\n")
 	for row := 0; row < screenHeight; row++ {
 		fmt.Printf("|")
@@ -437,8 +444,10 @@ func drawScreen() {
 
 func getByteForScreen(val byte) string {
 	str := map[byte]string{
-		0: "    ", 1: "   *", 2: "  * ", 3: "  **", 4: " *  ", 5: " * *", 6: " ** ", 7: " ***",
-		8: "*   ", 9: "*  *", 10: "* * ", 11: "* **", 12: "**  ", 13: "** *", 14: "*** ", 15: "****",
+		0: "    ", 1: "   \u2587", 2: "  \u2587 ", 3: "  \u2587\u2587", 4: " \u2587  ", 5: " \u2587 \u2587",
+		6: " \u2587\u2587 ", 7: " \u2587\u2587\u2587", 8: "\u2587   ", 9: "\u2587  \u2587", 10: "\u2587 \u2587 ",
+		11: "\u2587 \u2587\u2587", 12: "\u2587\u2587  ", 13: "\u2587\u2587 \u2587", 14: "\u2587\u2587\u2587 ",
+		15: "\u2587\u2587\u2587\u2587",
 	}
 	return str[val>>4] + str[val&0xF]
 }
