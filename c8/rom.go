@@ -140,6 +140,7 @@ func RunROM() error {
 				}
 			default:
 				fmt.Printf("-------------> Unknown statement !!! Data:0x%X\n", val)
+				return nil
 			}
 
 		case val >= 0x6000 && val <= 0x6FFF:

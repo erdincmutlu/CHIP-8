@@ -86,7 +86,7 @@ func drawScreen() {
 
 func getDigits(x byte) [8]bool {
 	var val [8]bool
-	index := 8
+	index := 7
 	for x > 0 {
 		if x%2 == 1 {
 			val[index] = true
