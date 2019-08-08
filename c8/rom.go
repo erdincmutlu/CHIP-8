@@ -9,12 +9,12 @@ import (
 
 const (
 	memorySize          = 0x1000
-	ProgramCounterStart = 0x200
-	ScreenMemoryStart   = 0x100
+	programCounterStart = 0x200
+	screenMemoryStart   = 0x100
 	clearScreen         = "\033[H\033[2J"
 )
 
-var Memory = make([]byte, memorySize)
+var memory = make([]byte, memorySize)
 
 type registerStruct struct {
 	v           []byte
@@ -27,7 +27,7 @@ type registerStruct struct {
 // Regs are registers
 var regs = registerStruct{
 	v:           make([]byte, 16),
-	progCounter: ProgramCounterStart,
+	progCounter: programCounterStart,
 }
 
 type stackPtr struct {
@@ -54,7 +54,8 @@ func ReadROM(filename string) error {
 	fmt.Printf("File is %d bytes\n", fileInfo.Size())
 
 	reader := bufio.NewReader(file)
-	_, err = reader.Read(Memory[ProgramCounterStart:])
+	_, err = reader.Read(memory[programCounterStart:])
+	initSprites()
 	return err
 }
 
@@ -62,8 +63,8 @@ func ReadROM(filename string) error {
 func RunROM() error {
 	for regs.progCounter <= memorySize {
 		fmt.Printf("At instruction 0x%X: ", regs.progCounter)
-		b1 := uint16(Memory[regs.progCounter])
-		b2 := uint16(Memory[regs.progCounter+1])
+		b1 := uint16(memory[regs.progCounter])
+		b2 := uint16(memory[regs.progCounter+1])
 		val := b1<<8 + b2
 		switch {
 		case val == 0x0000:
@@ -72,7 +73,7 @@ func RunROM() error {
 
 		case val == 0x00E0:
 			// 00E0	Display	disp_clear()	Clears the screen.
-			screen = [ScreenHeight][ScreenWidth]byte{}
+			tiles = [tilesVertically][tilesHorizontally]byte{}
 			fmt.Printf("0x%X Clear the screen\n", val)
 
 		case val == 0x00EE:
@@ -283,8 +284,8 @@ func RunROM() error {
 			//  Display resolution is 64×32 pixels
 			var valSlice []byte
 			for i := byte(0); i < byte(b2&0xF); i++ {
-				screen[regs.v[(b2&0xF0)>>4]+i][regs.v[b1&0xF]>>3] = Memory[regs.index+uint16(i)]
-				valSlice = append(valSlice, Memory[regs.index+uint16(i)])
+				tiles[regs.v[(b2&0xF0)>>4]+i][regs.v[b1&0xF]>>3] = memory[regs.index+uint16(i)]
+				valSlice = append(valSlice, memory[regs.index+uint16(i)])
 			}
 			fmt.Printf("0x%X Draw a sprite at coor (V%X:%d, V%X:%d) width 8 pixels height %d pixels (valSlice:%d)\n",
 				val, b1&0xF, regs.v[b1&0xF], (b2&0xF0)>>4, regs.v[(b2&0xF0)>>4], b2&0xF, valSlice)
@@ -347,7 +348,7 @@ func RunROM() error {
 				// Characters 0-F (in hexadecimal) are represented by a 4x5 font.
 				// All sprites are 5 bytes long, so the location of the specified sprite
 				// is its index multiplied by 5.
-				regs.index = ScreenMemoryStart + uint16(regs.v[b1&0xF])*5
+				regs.index = screenMemoryStart + uint16(regs.v[b1&0xF])*5
 				fmt.Printf("0x%X Set I to the location (0x%X) of the sprite for the character in V%X (val:%d)\n",
 					val, regs.index, b1&0xF, regs.v[b1&0xF])
 			case 0x33:
@@ -358,16 +359,16 @@ func RunROM() error {
 				// digit at I plus 2. (In other words, take the decimal representation of VX, place the
 				// hundreds digit in memory at location in I, the tens digit at location I+1, and the ones
 				// digit at location I+2.)
-				Memory[regs.index] = byte(regs.v[b1&0xF] / 100)
-				Memory[regs.index+1] = byte(regs.v[b1&0xF]%100) / 10
-				Memory[regs.index+2] = regs.v[b1&0xF] % 10
+				memory[regs.index] = byte(regs.v[b1&0xF] / 100)
+				memory[regs.index+1] = byte(regs.v[b1&0xF]%100) / 10
+				memory[regs.index+2] = regs.v[b1&0xF] % 10
 				fmt.Printf("0x%X Store BCD of V%X (val:%d) at memory index:0x%X)\n", val, b1&0xF, regs.v[b1&0xF], regs.index)
 			case 0x55:
 				// FX55	MEM	reg_dump(Vx,&I)	Stores V0 to VX (including VX) in memory starting at address I.
 				// The offset from I is increased by 1 for each value written, but I itself is left unmodified.
 				var valSlice []byte
 				for i := uint16(0); i <= b1&0xF; i++ {
-					Memory[regs.index+i] = regs.v[i]
+					memory[regs.index+i] = regs.v[i]
 					valSlice = append(valSlice, regs.v[i])
 				}
 				fmt.Printf("0x%X Store V0 to V%X (valSlice:%d) in memory starting 0x%X\n", val, b1&0xF, valSlice, regs.index)
@@ -377,7 +378,7 @@ func RunROM() error {
 				// itself is left unmodified.
 				var valSlice []byte
 				for i := uint16(0); i <= b1&0xF; i++ {
-					regs.v[i] = Memory[regs.index+i]
+					regs.v[i] = memory[regs.index+i]
 					valSlice = append(valSlice, regs.v[i])
 				}
 				fmt.Printf("0x%X Fill V0 to V%X with values (valSlice:%d) at memory\n", val, b1&0xF, valSlice)
@@ -413,4 +414,26 @@ func getByteForScreen(val byte) string {
 		15: "\u2587\u2587\u2587\u2587",
 	}
 	return str[val>>4] + str[val&0xF]
+}
+
+func initSprites() {
+	sprites := []byte{
+		0xF0, 0x90, 0x90, 0x90, 0xF0, //0
+		0x20, 0x60, 0x20, 0x20, 0x70, //1
+		0xF0, 0x10, 0xF0, 0x80, 0xF0, //2
+		0xF0, 0x10, 0xF0, 0x10, 0xF0, //3
+		0x90, 0x90, 0xF0, 0x10, 0x10, //4
+		0xF0, 0x80, 0xF0, 0x10, 0xF0, //5
+		0xF0, 0x80, 0xF0, 0x90, 0xF0, //6
+		0xF0, 0x10, 0x20, 0x40, 0x40, //7
+		0xF0, 0x90, 0xF0, 0x90, 0xF0, //8
+		0xF0, 0x90, 0xF0, 0x10, 0xF0, //9
+		0xF0, 0x90, 0xF0, 0x90, 0x90, //A
+		0xE0, 0x90, 0xE0, 0x90, 0xE0, //B
+		0xF0, 0x80, 0x80, 0x80, 0xF0, //C
+		0xE0, 0x90, 0x90, 0x90, 0xE0, //D
+		0xF0, 0x80, 0xF0, 0x80, 0xF0, //E
+		0xF0, 0x80, 0xF0, 0x80, 0x80, //F
+	}
+	copy(memory[screenMemoryStart:], sprites)
 }

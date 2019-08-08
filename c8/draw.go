@@ -10,8 +10,10 @@ import (
 const ()
 
 var (
-	backgroundColor = color.RGBA{0x0, 0x0, 0x0, 0xff}
+	backgroundColor = color.Black
 )
+
+var tiles [tilesVertically][tilesHorizontally]byte
 
 var tile *ebiten.Image
 
@@ -43,37 +45,54 @@ func (p *Prog) Update() error {
 
 // Draw draws the current game to the given screen
 func (p *Prog) Draw(screen *ebiten.Image) error {
-	// screen.Fill(backgroundColor)
-	// op := &ebiten.DrawImageOptions{}
-	// op.GeoM.Translate(float64(100), float64(150))
-	// op.ColorM.Translate(0xFF, 0x10, 0x20, 0xBB)
-	// screen.DrawImage(tile, op)
-	// op.GeoM.Translate(float64(120), float64(170))
-	// screen.DrawImage(tile, op)
+	screen.Fill(backgroundColor)
 
-	drawSingle(screen, 0, 0, 0)
-	drawSingle(screen, 1, 1, 1)
+	for row := 0; row < tilesVertically; row++ {
+		for col := 0; col < tilesHorizontally; col++ {
+			digits := getDigits(tiles[row][col])
+			for i, digit := range digits {
+				if digit {
+					drawATile(screen, row, col, i)
+				}
+			}
+		}
+	}
+	drawATile(screen, 0, 0, 0)
+	drawATile(screen, 31, 7, 7)
 	return nil
 }
 
-func drawSingle(screen *ebiten.Image, row, col, index int) error {
+func drawATile(screen *ebiten.Image, row, col, index int) error {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(row*tileSize), float64((col*4+index)*tileSize))
+	op.GeoM.Translate(float64((col*8+index)*tileSize), float64(row*tileSize))
 	op.ColorM.Translate(0xFF, 0x10, 0x20, 0xBB)
 	screen.DrawImage(tile, op)
 	return nil
 }
 
 func drawScreen() {
-	// time.Sleep(time.Second * 2)
+	// time.Sleep(time.Second * 5)
 	// fmt.Printf(clearScreen)
 	fmt.Printf("+----------------------------------------------------------------+\n")
-	for row := 0; row < ScreenHeight; row++ {
+	for row := 0; row < tilesVertically; row++ {
 		fmt.Printf("|")
-		for col := 0; col < ScreenWidth; col++ {
-			fmt.Printf("%s", getByteForScreen(screen[row][col]))
+		for col := 0; col < tilesHorizontally; col++ {
+			fmt.Printf("%s", getByteForScreen(tiles[row][col]))
 		}
 		fmt.Printf("|\n")
 	}
 	fmt.Printf("+----------------------------------------------------------------+\n")
+}
+
+func getDigits(x byte) [8]bool {
+	var val [8]bool
+	index := 8
+	for x > 0 {
+		if x%2 == 1 {
+			val[index] = true
+		}
+		x = x >> 1
+		index--
+	}
+	return val
 }

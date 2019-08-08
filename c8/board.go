@@ -1,17 +1,18 @@
 package c8
 
 const (
-	BoardWidth   = 600
-	BoardHeight  = 420
-	tileSize     = 10
-	ScreenWidth  = 64 / 8
-	ScreenHeight = 32
+	tileSize          = 10
+	tilesHorizontally = 64 / 8
+	tilesVertically   = 32
+
+	BoardWidth  = tilesHorizontally * 8 * tileSize
+	BoardHeight = tilesVertically * tileSize
 )
 
-var screen [ScreenHeight][ScreenWidth]byte
+var Tiles [tilesVertically][tilesHorizontally]byte
 
 type board struct {
-	screen2 [ScreenHeight][ScreenWidth]byte
+	tiles [tilesVertically][tilesHorizontally]byte
 }
 
 var b2 board
