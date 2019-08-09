@@ -9,8 +9,6 @@ const (
 	BoardHeight = pixelsVertically * pixelSize
 )
 
-var Tiles [pixelsVertically][pixelsHorizontally]byte
-
 type board struct {
 	tiles [pixelsVertically][pixelsHorizontally]byte
 }
