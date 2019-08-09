@@ -39,7 +39,7 @@ type stackPtr struct {
 }
 
 var stack []stackPtr
-var keys = make([]bool, 16)
+var keyPressed byte
 
 // ReadROM will read the ROM
 func ReadROM(filename string) error {
@@ -286,14 +286,6 @@ func RunROM() error {
 			// 1 if any screen pixels are flipped from set to unset when the sprite is drawn,
 			// and to 0 if that doesn’t happen
 			//  Display resolution is 64×32 pixels
-			// var valSlice []byte
-			// for i := byte(0); i < byte(b2&0xF); i++ {
-			// 	pixels[regs.v[(b2&0xF0)>>4]+i][regs.v[b1&0xF]>>3] = memory[regs.index+uint16(i)]
-			// 	valSlice = append(valSlice, memory[regs.index+uint16(i)])
-			// }
-			// fmt.Printf("0x%X Draw a sprite at coor (V%X:%d, V%X:%d) width 8 pixels height %d pixels (valSlice:%d)\n",
-			// 	val, b1&0xF, regs.v[b1&0xF], (b2&0xF0)>>4, regs.v[(b2&0xF0)>>4], b2&0xF, valSlice)
-			// drawScreen()
 			var valSlice []byte
 			X := b1 & 0xF
 			Y := (b2 & 0xF0) >> 4
@@ -321,7 +313,7 @@ func RunROM() error {
 				// EX9E	KeyOp	if(key()==Vx)	Skips the next instruction if the key stored in VX is pressed.
 				// (Usually the next instruction is a jump to skip a code block)
 				fmt.Printf("0x%X Skip instruction if key %d is pressed", val, b1&0xF)
-				if keys[regs.v[b1&0x0F]] == true {
+				if keyPressed == regs.v[b1&0x0F] {
 					regs.progCounter += 2
 					fmt.Printf(" ==> SKIP NEXT INTRUCTION\n")
 				} else {
@@ -331,7 +323,7 @@ func RunROM() error {
 				//EXA1	KeyOp	if(key()!=Vx)	Skips the next instruction if the key stored in VX
 				// isn't pressed. (Usually the next instruction is a jump to skip a code block)
 				fmt.Printf("0x%X Skip instruction if key %d is not pressed", val, b1&0xF)
-				if keys[regs.v[b1&0x0F]] == false {
+				if keyPressed != regs.v[b1&0x0F] {
 					regs.progCounter += 2
 					fmt.Printf(" ==> SKIP NEXT INTRUCTION\n")
 				} else {
@@ -355,7 +347,8 @@ func RunROM() error {
 				//FX0A	KeyOp	Vx = get_key()	A key press is awaited, and then stored in VX.
 				// (Blocking Operation. All instruction halted until next key event)
 				fmt.Printf("0x%X A key press is awaited, and then stored in V%X Blocking operation\n", val, b1&0xF)
-				regs.v[b1&0xF], _ = readChar()
+				keyPressed, _ = readKeyboard()
+				regs.v[b1&0xF] = keyPressed
 				fmt.Printf("Set V%X as %d\n", b1&0xF, regs.v[b1&0xF])
 			case 0x15:
 				// FX15	Timer	delay_timer(Vx)	Sets the delay timer to VX.
@@ -420,7 +413,7 @@ func RunROM() error {
 	return nil
 }
 
-func readChar() (byte, error) {
+func readKeyboard() (byte, error) {
 	reader := bufio.NewReader(os.Stdin)
 	for true {
 		char, _, err := reader.ReadRune()

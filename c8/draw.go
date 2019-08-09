@@ -90,7 +90,7 @@ func drawScreen() {
 	for row := 0; row < pixelsVertically; row++ {
 		for col := 0; col < pixelsHorizontally; col++ {
 			if pixels[row][col] > 0 {
-				fmt.Printf("%d", pixels[row][col])
+				fmt.Printf("X")
 			} else {
 				fmt.Printf(" ")
 			}
