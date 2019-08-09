@@ -54,9 +54,7 @@ func (p *Prog) Draw(screen *ebiten.Image) error {
 			}
 		}
 	}
-	// drawAPixel(screen, 0, 0)
-	// drawAPixel(screen, 1, 1)
-	// drawAPixel(screen, 31, 63)
+	drawBorders(screen)
 	return nil
 }
 
@@ -65,6 +63,24 @@ func drawAPixel(screen *ebiten.Image, row, col int) {
 	op.GeoM.Translate(float64(col*pixelSize), float64(row*pixelSize))
 	op.ColorM.Translate(0xFF, 0x10, 0x20, 0xBB)
 	screen.DrawImage(aPixel, op)
+}
+
+func drawBorders(screen *ebiten.Image) {
+	horizontal, _ := ebiten.NewImage(BoardWidth, 2, ebiten.FilterDefault)
+	op := &ebiten.DrawImageOptions{}
+	for i := 0; i < 3; i++ {
+		op.GeoM.Translate(0, float64(pixelSize*8))
+		op.ColorM.Translate(0xFF, 0x00, 0x00, 0xBB)
+		screen.DrawImage(horizontal, op)
+	}
+
+	vertical, _ := ebiten.NewImage(2, BoardHeight, ebiten.FilterDefault)
+	opv := &ebiten.DrawImageOptions{}
+	for i := 0; i < 7; i++ {
+		opv.GeoM.Translate(float64(pixelSize*8), 0)
+		opv.ColorM.Translate(0xFF, 0x00, 0x00, 0xBB)
+		screen.DrawImage(vertical, opv)
+	}
 }
 
 func drawScreen() {
