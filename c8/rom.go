@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
+	"unicode"
 )
 
 const (
@@ -73,7 +75,7 @@ func RunROM() error {
 
 		case val == 0x00E0:
 			// 00E0	Display	disp_clear()	Clears the screen.
-			tiles = [tilesVertically][tilesHorizontally]byte{}
+			pixels = [pixelsVertically][pixelsHorizontally]byte{}
 			fmt.Printf("0x%X Clear the screen\n", val)
 
 		case val == 0x00EE:
@@ -244,6 +246,7 @@ func RunROM() error {
 					val, b1&0x0F, oldVal, b2&0xF0>>4, regs.v[b2&0xF0>>4], regs.v[b1&0x0F])
 			default:
 				fmt.Printf("-------------> Unknown statement !!! Data:0x%X\n", val)
+				return nil
 			}
 
 		case val >= 0x9000 && val <= 0x9FFF:
@@ -283,13 +286,33 @@ func RunROM() error {
 			// 1 if any screen pixels are flipped from set to unset when the sprite is drawn,
 			// and to 0 if that doesn’t happen
 			//  Display resolution is 64×32 pixels
+			// var valSlice []byte
+			// for i := byte(0); i < byte(b2&0xF); i++ {
+			// 	pixels[regs.v[(b2&0xF0)>>4]+i][regs.v[b1&0xF]>>3] = memory[regs.index+uint16(i)]
+			// 	valSlice = append(valSlice, memory[regs.index+uint16(i)])
+			// }
+			// fmt.Printf("0x%X Draw a sprite at coor (V%X:%d, V%X:%d) width 8 pixels height %d pixels (valSlice:%d)\n",
+			// 	val, b1&0xF, regs.v[b1&0xF], (b2&0xF0)>>4, regs.v[(b2&0xF0)>>4], b2&0xF, valSlice)
+			// drawScreen()
 			var valSlice []byte
-			for i := byte(0); i < byte(b2&0xF); i++ {
-				tiles[regs.v[(b2&0xF0)>>4]+i][regs.v[b1&0xF]>>3] = memory[regs.index+uint16(i)]
-				valSlice = append(valSlice, memory[regs.index+uint16(i)])
+			X := b1 & 0xF
+			Y := (b2 & 0xF0) >> 4
+			height := byte(b2 & 0xF)
+			for i := byte(0); i < height; i++ {
+				value := byte(memory[regs.index+uint16(i)])
+				digits := getDigits(value)
+				for j, digit := range digits {
+					if digit {
+						pixels[regs.v[Y]+i][regs.v[X]+byte(j)] = 1
+					} else {
+						pixels[regs.v[Y]+i][regs.v[X]+byte(j)] = 0
+					}
+				}
+				valSlice = append(valSlice, value)
 			}
+
 			fmt.Printf("0x%X Draw a sprite at coor (V%X:%d, V%X:%d) width 8 pixels height %d pixels (valSlice:%d)\n",
-				val, b1&0xF, regs.v[b1&0xF], (b2&0xF0)>>4, regs.v[(b2&0xF0)>>4], b2&0xF, valSlice)
+				val, X, regs.v[X], Y, regs.v[Y], height, valSlice)
 			drawScreen()
 
 		case val >= 0xE000 && val <= 0xEFFF:
@@ -332,6 +355,8 @@ func RunROM() error {
 				//FX0A	KeyOp	Vx = get_key()	A key press is awaited, and then stored in VX.
 				// (Blocking Operation. All instruction halted until next key event)
 				fmt.Printf("0x%X A key press is awaited, and then stored in V%X Blocking operation\n", val, b1&0xF)
+				regs.v[b1&0xF], _ = readChar()
+				fmt.Printf("Set V%X as %d\n", b1&0xF, regs.v[b1&0xF])
 			case 0x15:
 				// FX15	Timer	delay_timer(Vx)	Sets the delay timer to VX.
 				setDelayTimer(byte(b1) & 0xF)
@@ -395,6 +420,39 @@ func RunROM() error {
 	return nil
 }
 
+func readChar() (byte, error) {
+	reader := bufio.NewReader(os.Stdin)
+	for true {
+		char, _, err := reader.ReadRune()
+		if err != nil {
+			fmt.Println(err)
+			return 0, err
+		}
+
+		chStr := unicode.ToUpper(char)
+		switch chStr {
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F':
+			result, _ := strconv.ParseUint(string(chStr), 16, 64)
+			return byte(result), nil
+		}
+	}
+
+	return 0, nil
+}
+
+func getDigits(x byte) [8]bool {
+	var val [8]bool
+	index := 7
+	for x > 0 {
+		if x%2 == 1 {
+			val[index] = true
+		}
+		x = x >> 1
+		index--
+	}
+	return val
+}
+
 func setDelayTimer(variableIndex byte) {
 	regs.delayTimer = regs.v[variableIndex]
 }
@@ -405,16 +463,6 @@ func getDelay() byte {
 
 func setSoundTimer(variableIndex byte) {
 	regs.soundTimer = regs.v[variableIndex]
-}
-
-func getByteForScreen(val byte) string {
-	str := map[byte]string{
-		0: "    ", 1: "   \u2587", 2: "  \u2587 ", 3: "  \u2587\u2587", 4: " \u2587  ", 5: " \u2587 \u2587",
-		6: " \u2587\u2587 ", 7: " \u2587\u2587\u2587", 8: "\u2587   ", 9: "\u2587  \u2587", 10: "\u2587 \u2587 ",
-		11: "\u2587 \u2587\u2587", 12: "\u2587\u2587  ", 13: "\u2587\u2587 \u2587", 14: "\u2587\u2587\u2587 ",
-		15: "\u2587\u2587\u2587\u2587",
-	}
-	return str[val>>4] + str[val&0xF]
 }
 
 func initSprites() {
