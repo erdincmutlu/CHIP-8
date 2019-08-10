@@ -3,6 +3,7 @@ package c8
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -297,8 +298,9 @@ func RunROM() error {
 			for i := byte(0); i < height; i++ {
 				value := byte(memory[regs.index+uint16(i)])
 				digits := getDigits(value)
-				for j, digit := range digits {
-					if digit {
+				useablePixels := int(math.Min(float64(pixelsHorizontally-regs.v[X]), 8))
+				for j := 0; j < useablePixels; j++ {
+					if digits[j] {
 						pixels[regs.v[Y]+i][regs.v[X]+byte(j)] = 1
 					} else {
 						pixels[regs.v[Y]+i][regs.v[X]+byte(j)] = 0
