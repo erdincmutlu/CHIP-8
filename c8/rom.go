@@ -101,8 +101,13 @@ func RunROM() error {
 
 		case val >= 0x1000 && val <= 0x1FFF:
 			// 1NNN	Flow	goto NNN;	Jumps to address NNN.
-			regs.progCounter = val&0xFFF - 2
-			fmt.Printf("Jump to address at 0x%X\n", val&0xFFF)
+			jumpAddress := val & 0xFFF
+			fmt.Printf("Jump to address at 0x%X\n", jumpAddress)
+			if val&0xFFF == regs.progCounter {
+				fmt.Printf("Jumping to the same address. Stopping\n")
+				return nil
+			}
+			regs.progCounter = jumpAddress - 2
 
 		case val >= 0x2000 && val <= 0x2FFF:
 			// 2NNN	Flow	*(0xNNN)()	Calls subroutine at NNN.
