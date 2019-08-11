@@ -298,8 +298,8 @@ func RunROM() error {
 			for i := byte(0); i < height; i++ {
 				value := byte(memory[regs.index+uint16(i)])
 				digits := getDigits(value)
-				useablePixels := int(math.Min(float64(pixelsHorizontally-regs.v[X]), 8))
-				for j := 0; j < useablePixels; j++ {
+				visiblePixels := int(math.Min(float64(pixelsHorizontally-regs.v[X]), 8))
+				for j := 0; j < visiblePixels; j++ {
 					if digits[j] {
 						pixels[regs.v[Y]+i][regs.v[X]+byte(j)] = 1
 					} else {
@@ -337,6 +337,7 @@ func RunROM() error {
 				}
 			default:
 				fmt.Printf("-------------> Unknown statement !!! Data:0x%X\n", val)
+				return nil
 			}
 
 		case val >= 0xF000:
@@ -409,10 +410,12 @@ func RunROM() error {
 				fmt.Printf("Fill V0 to V%X with values (valSlice:%d) at memory\n", b1&0xF, valSlice)
 			default:
 				fmt.Printf("-------------> Unknown statement !!! Data:0x%X\n", val)
+				return nil
 			}
 
 		default:
 			fmt.Printf("-------------> Unknown statement !!! Data:0x%X\n", val)
+			return nil
 		}
 		regs.progCounter += 2
 	}
