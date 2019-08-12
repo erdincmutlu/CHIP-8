@@ -111,8 +111,8 @@ func RunROM() error {
 
 		case val >= 0x2000 && val <= 0x2FFF:
 			// 2NNN	Flow	*(0xNNN)()	Calls subroutine at NNN.
-			regs.progCounter = val&0xFFF - 2
 			stack = append(stack, stackPtr{v: regs.v, index: regs.index, progCounter: regs.progCounter})
+			regs.progCounter = val&0xFFF - 2
 			fmt.Printf("Call subroutine at 0x%X\n", val&0xFFF)
 
 		case val >= 0x3000 && val <= 0x3FFF:
