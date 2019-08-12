@@ -302,14 +302,14 @@ func RunROM() error {
 			height := byte(b2 & 0xF)
 			visiblePixelsHorizontally := byte(math.Min(float64(pixelsHorizontally-regs.v[X]), 8))
 			visiblePixelsVertically := byte(math.Min(float64(pixelsVertically-regs.v[Y]), float64(height)))
-			fmt.Printf("Draw a sprite at coor (V%X:%d, V%X:%d) width 8 (visible: %d) pixels height %d (visible: %d) pixels (valSlice:%d)\n",
-				X, regs.v[X], Y, regs.v[Y], visiblePixelsHorizontally, height, visiblePixelsVertically, valSlice)
+			fmt.Printf("Draw a sprite at coor (V%X:%d, V%X:%d) width 8 (visible: %d) pixels height %d (visible: %d) pixels ",
+				X, regs.v[X], Y, regs.v[Y], visiblePixelsHorizontally, height, visiblePixelsVertically)
 			if regs.v[X] > pixelsHorizontally {
-				fmt.Printf("error: Out of horizontal pixels\n")
+				fmt.Printf("\nerror: Out of horizontal pixels\n")
 				return nil
 			}
 			if regs.v[Y] > pixelsVertically {
-				fmt.Printf("error: Out of vertical pixels\n")
+				fmt.Printf("\nerror: Out of vertical pixels\n")
 				return nil
 			}
 			for i := byte(0); i < visiblePixelsVertically; i++ {
@@ -324,6 +324,7 @@ func RunROM() error {
 				}
 				valSlice = append(valSlice, value)
 			}
+			fmt.Printf("(valSlice:%d)\n", valSlice)
 			drawScreen()
 
 		case val >= 0xE000 && val <= 0xEFFF:
