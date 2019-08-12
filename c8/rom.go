@@ -300,22 +300,23 @@ func RunROM() error {
 			X := b1 & 0xF
 			Y := (b2 & 0xF0) >> 4
 			height := byte(b2 & 0xF)
-			for i := byte(0); i < height; i++ {
+			visiblePixelsHorizontally := byte(math.Min(float64(pixelsHorizontally-regs.v[X]), 8))
+			visiblePixelsVertically := byte(math.Min(float64(pixelsVertically-regs.v[Y]), float64(height)))
+			for i := byte(0); i < visiblePixelsVertically; i++ {
 				value := byte(memory[regs.index+uint16(i)])
 				digits := getDigits(value)
-				visiblePixels := int(math.Min(float64(pixelsHorizontally-regs.v[X]), 8))
-				for j := 0; j < visiblePixels; j++ {
+				for j := byte(0); j < visiblePixelsHorizontally; j++ {
 					if digits[j] {
-						pixels[regs.v[Y]+i][regs.v[X]+byte(j)] = 1
+						pixels[regs.v[Y]+i][regs.v[X]+j] = 1
 					} else {
-						pixels[regs.v[Y]+i][regs.v[X]+byte(j)] = 0
+						pixels[regs.v[Y]+i][regs.v[X]+j] = 0
 					}
 				}
 				valSlice = append(valSlice, value)
 			}
 
-			fmt.Printf("Draw a sprite at coor (V%X:%d, V%X:%d) width 8 pixels height %d pixels (valSlice:%d)\n",
-				X, regs.v[X], Y, regs.v[Y], height, valSlice)
+			fmt.Printf("Draw a sprite at coor (V%X:%d, V%X:%d) width 8 (visible: %d) pixels height %d (visible: %d) pixels (valSlice:%d)\n",
+				X, regs.v[X], Y, regs.v[Y], visiblePixelsHorizontally, height, visiblePixelsVertically, valSlice)
 			drawScreen()
 
 		case val >= 0xE000 && val <= 0xEFFF:
